@@ -13,6 +13,8 @@ npm install logging.js
 Example
 -------
 
+Just get an logger from registry, add rules to it, then di logging:
+
 ```js
 var logging = require('./index'),
   log = logging.get('mylogger');
@@ -91,6 +93,22 @@ Logging enables 2 handy string formatting types:
 ```js
 log.info('%s=%d', 'val', 1) // 'val=1'
 log.info('%(key1)s=%(key2)d', {key1: 'abc', key2: 123}) // 'abc=123'
+```
+
+File Stream Example
+--------------------
+
+We can add multiple rules (or say streams) to a logger, here is
+an example for file stream:
+
+```js
+var fs = require('fs');
+var log = logging.get('myapp');
+
+log.addRule({name: 'file', stream: 
+  fs.createWriteStream('myapp.log', {flags: 'a'})});
+
+log.info('logging from the maginc world');
 ```
 
 License
