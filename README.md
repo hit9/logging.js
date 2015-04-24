@@ -10,8 +10,8 @@ Installation
 npm install logging.js
 ```
 
-Examples
---------
+Example
+-------
 
 ```js
 var logging = require('./index'),
