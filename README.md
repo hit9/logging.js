@@ -75,7 +75,7 @@ log.critical(fmt, ...)
 Formatter
 ----------
 
-A formatter can be a string or function like `function(fmt) {..}`.
+A formatter can be a string or a function like `function(fmt) {..}`.
 
 For string case, an example:
 
