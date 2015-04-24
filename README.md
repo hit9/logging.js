@@ -22,7 +22,7 @@ var logging = require('logging.js'),
 log.addRule({name: 'stdout', stream: process.stdout});
 log.info('logging from the magic world')
 
-// => 2015-04-25 01-32-07,821 info myname[4900]: logging from the magic world
+// => 2015-04-25 01-32-07,821 info mylogger[4900]: logging from the magic world
 ```
 
 Logging Levels
