@@ -2,7 +2,7 @@
 // https://github.com/hit9/logging.js
 // MIT. (c) Chao Wang <hit9@icloud.com>
 
-var util       = require('util');
+var util       = require('./util');
 // global registry. {name: logger}
 var registry   = {};
 // level. {name: level}
@@ -23,7 +23,7 @@ var levelNames = {
   50: 'CRITICAL'
 };
 // default formartter
-var _formatter = '{asctime} {levelname} {name}[{pid}]: {message}';
+var _formatter = '%(asctime)s %(levelname)s %(name)s[%(pid)d]: %(message)s';
 
 // LogRecord constructor.
 //
@@ -43,53 +43,17 @@ function LogRecord(args) {
   this.fmt        = args.fmt;
   this.args       = args.args;
   this.level      = args.level;
-  this.message    = this._format(this.fmt, this.args);
+  this.message    = util.format(this.fmt, this.args);
   this.levelName  = levelNames[this.level];
   this.levelname  = this.levelName.toLowerCase();
   this.pid        = process.pid;
   this.created    = new Date();
-  this.asctime    = this._formatDate(this.created);
+  this.asctime    = util.formatDate(this.created);
 }
-
-// util to format string with array/object.
-var _formatRegExp = /{([^}]*)}/g;
-LogRecord.prototype._format = function(fmt, args) {
-  var _idx = -1;
-  return fmt.replace(_formatRegExp, function(match, key) {
-    if (key === '') {
-      if (!util.isArray(args)) {
-        throw new TypeError(
-          'array required for automatic field numbering.');
-      } else {
-        key = _idx += 1;
-      }
-    } else {
-      if (_idx >= 0)
-        throw new Error('cannot use automatic field numbering '+
-                        'and manual field specification togerther');
-    }
-
-    return typeof args[key] != 'undefined'? args[key] : match;
-  });
-}
-
-// util to format date
-LogRecord.prototype._formatDate = function(date, fmt) {
-  fmt = fmt || '{y}-{m}-{d} {H}-{M}-{S},{MS}';
-  return this._format(fmt, {
-    y  : date.getFullYear(),
-    m  : ('00' + (date.getMonth() + 1)).slice(-2),
-    d  : ('00' + date.getDate()).slice(-2),
-    H  : ('00' + date.getHours()).slice(-2),
-    M  : ('00' + date.getMinutes()).slice(-2),
-    S  : ('00' + date.getSeconds()).slice(-2),
-    MS : ('000' + date.getMilliseconds()).slice(-3),
-  });
-};
 
 LogRecord.prototype.format = function(formatter) {
   if (typeof formatter === 'string')
-    return this._format(formatter, this);
+    return util.format(formatter, this);
   if (typeof formatter === 'function')
     return formatter(this);
   throw new TypeError('formatter should be a string or function')
@@ -102,10 +66,13 @@ function Logger(name) {
   if (typeof name !== 'string')
     throw new TypeError('string required')
   this.name  = name;
-  this.rules = {};    // {name: handler}
+  this.rules = {};
 }
 
-Logger.prototype.rule = function(name, rule) {
+Logger.prototype.addRule = function(rule) {
+  if (!('name' in rule))
+    throw new Error('rule.name required');
+
   var stream = rule.stream;
   var formatter = rule.formatter || _formatter;
   var level = rule.level || levels.DEBUG;
@@ -113,7 +80,7 @@ Logger.prototype.rule = function(name, rule) {
   if (!(stream && stream.writable))
       throw new Error('invalid stream');
 
-  return this.rules[name] = {stream: stream,
+  return this.rules[rule.name] = {stream: stream,
     formatter: formatter, level: level};
 };
 
