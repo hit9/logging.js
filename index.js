@@ -1,10 +1,11 @@
-// Stream based logging library for nodejs/iojs.
-// https://github.com/hit9/logging.js
+// Stream based logging module for nodejs/iojs.
 // MIT. (c) Chao Wang <hit9@icloud.com>
 
 var util       = require('./util');
+
 // global registry. {name: logger}
 var registry   = {};
+
 // level. {name: level}
 var levels     = {
   DEBUG   : 10,
@@ -14,6 +15,7 @@ var levels     = {
   ERROR   : 40,
   CRITICAL: 50,
 };
+
 // levelNames. {level: name}
 var levelNames = {
   10: 'DEBUG',
@@ -22,6 +24,7 @@ var levelNames = {
   40: 'ERROR',
   50: 'CRITICAL'
 };
+
 // default formartter
 var _formatter = '%(asctime)s %(levelname)s %(name)s[%(pid)d]: %(message)s';
 
@@ -58,7 +61,6 @@ LogRecord.prototype.format = function(formatter) {
     return formatter(this);
   throw new TypeError('formatter should be a string or function')
 };
-
 
 
 // Logger constructor
@@ -129,7 +131,5 @@ exports.WARNING      = levels.WARNING;
 exports.ERROR        = levels.ERROR;
 exports.CRITICAL     = levels.CRITICAL;
 exports.get          = function(name) {
-  if (!(name in registry))
-    registry[name] = new Logger(name);
-  return registry[name];
+  return registry[name] || (registry[name] = new Logger(name));
 };
