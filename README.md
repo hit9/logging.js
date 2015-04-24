@@ -89,8 +89,8 @@ Logging Formatting
 Logging enables 2 handy string formatting types:
 
 ```js
-log.info('%s=%d', 'val', 1)       // 'val=1'
-log.info('%(key)s=%(val)d', {key: 'val'})   // 'key=val'
+log.info('%s=%d', 'val', 1) // 'val=1'
+log.info('%(key1)s=%(key2)d', {key1: 'abc', key2: 123}) // 'abc=123'
 ```
 
 License
