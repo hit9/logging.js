@@ -61,7 +61,7 @@ LogRecord.prototype._format = function(fmt, args) {
         throw new TypeError(
           'array required for automatic field numbering.');
       } else {
-        key = automaticIdx += 1;
+        key = _idx += 1;
       }
     } else {
       if (_idx >= 0)
