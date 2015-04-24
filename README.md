@@ -16,7 +16,7 @@ Example
 Just get an logger from registry, add rules to it, then di logging:
 
 ```js
-var logging = require('./index'),
+var logging = require('logging.js'),
   log = logging.get('mylogger');
 
 log.addRule({name: 'stdout', stream: process.stdout});
