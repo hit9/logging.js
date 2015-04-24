@@ -2,7 +2,7 @@
 // https://github.com/hit9/logging.js
 // MIT. (c) Chao Wang <hit9@icloud.com>
 
-var util       = require('./util');
+var util       = require('util');
 // global registry. {name: logger}
 var registry   = {};
 // level. {name: level}
@@ -22,19 +22,15 @@ var levelNames = {
   40: 'ERROR',
   50: 'CRITICAL'
 };
-
-// get a logger
-function getLogger(name) {
-  if (!(name in registry))
-      registry[name] = new Logger(name);
-  return registry[name];
-}
+// default formartter
+var _formatter = '{asctime} {levelname} {name}[{pid}]: {message}';
 
 // LogRecord constructor.
 //
 //    name       logger name
 //    level      record level (number)
 //    levelName  record level (string)
+//    levelname  record level (string, lowercase)
 //    fmt        record formatter string
 //    args       record arguments
 //    message    record message (fmt % args)
@@ -47,49 +43,78 @@ function LogRecord(args) {
   this.fmt        = args.fmt;
   this.args       = args.args;
   this.level      = args.level;
-  this.message    = util.format(this.fmt, this.args);
+  this.message    = this._format(this.fmt, this.args);
   this.levelName  = levelNames[this.level];
+  this.levelname  = this.levelName.toLowerCase();
   this.pid        = process.pid;
   this.created    = new Date();
-  this.asctime    = util.formatDate(this.created);
+  this.asctime    = this._formatDate(this.created);
 }
 
-LogRecord.defaultFmt = '{asctime} {name}[{pid}]: {message}';
+// util to format string with array/object.
+var _formatRegExp = /{([^}]*)}/g;
+LogRecord.prototype._format = function(fmt, args) {
+  var _idx = -1;
+  return fmt.replace(_formatRegExp, function(match, key) {
+    if (key === '') {
+      if (!util.isArray(args)) {
+        throw new TypeError(
+          'array required for automatic field numbering.');
+      } else {
+        key = automaticIdx += 1;
+      }
+    } else {
+      if (_idx >= 0)
+        throw new Error('cannot use automatic field numbering '+
+                        'and manual field specification togerther');
+    }
 
-LogRecord.prototype.format = function(fmt) {
-  if (typeof fmt === 'function')
-    return fmt(this);
+    return typeof args[key] != 'undefined'? args[key] : match;
+  });
+}
 
-  if (typeof fmt === 'undefined')
-    fmt = LogRecord.defaultFmt;
-
-  if (typeof fmt === 'string')
-    return util.format(fmt, this);
-
-  throw TypeError('fmt should be a string or function');
+// util to format date
+LogRecord.prototype._formatDate = function(date, fmt) {
+  fmt = fmt || '{y}-{m}-{d} {H}-{M}-{S},{MS}';
+  return this._format(fmt, {
+    y  : date.getFullYear(),
+    m  : ('00' + (date.getMonth() + 1)).slice(-2),
+    d  : ('00' + date.getDate()).slice(-2),
+    H  : ('00' + date.getHours()).slice(-2),
+    M  : ('00' + date.getMinutes()).slice(-2),
+    S  : ('00' + date.getSeconds()).slice(-2),
+    MS : ('000' + date.getMilliseconds()).slice(-3),
+  });
 };
+
+LogRecord.prototype.format = function(formatter) {
+  if (typeof formatter === 'string')
+    return this._format(formatter, this);
+  if (typeof formatter === 'function')
+    return formatter(this);
+  throw new TypeError('formatter should be a string or function')
+};
+
+
 
 // Logger constructor
 function Logger(name) {
   if (typeof name !== 'string')
     throw new TypeError('string required')
   this.name  = name;
-  this.level = levels.INFO;  // default
   this.rules = {};    // {name: handler}
 }
 
-Logger.prototype.setRule = function(name, stream, fmt) {
-  return this.rules[name] = {stream: stream, fmt: fmt};
-};
+Logger.prototype.rule = function(name, rule) {
+  var stream = rule.stream;
+  var formatter = rule.formatter || _formatter;
+  var level = rule.level || levels.DEBUG;
 
-Logger.prototype.setLevel = function(level) {
-  if (typeof level !== 'number')
-    throw new TypeError('number required');
+  if (!(stream && stream.writable))
+      throw new Error('invalid stream');
 
-  if (isFinite(level))
-    level = levelNames.DEBUG;
-
-  return this.level = level;
+  return this.rules[name] = {stream: stream,
+    formatter: formatter, level: level};
 };
 
 Logger.prototype.debug = function(fmt, args) {
@@ -122,8 +147,8 @@ Logger.prototype._log = function(level, fmt, args) {
 
   for (var name in this.rules) {
     var rule = this.rules[name]
-    if (level >= this.level) {
-      rule.stream.write(record.format(rule.fmt));
+    if (level >= rule.level) {
+      rule.stream.write(record.format(rule.formatter));
       rule.stream.write('\n');
     }
   }
@@ -136,5 +161,8 @@ exports.WARN         = levels.WARN;
 exports.WARNING      = levels.WARNING;
 exports.ERROR        = levels.ERROR;
 exports.CRITICAL     = levels.CRITICAL;
-exports.getLogger    = getLogger;
-exports.util         = util;
+exports.get          = function(name) {
+  if (!(name in registry))
+    registry[name] = new Logger(name);
+  return registry[name];
+};
