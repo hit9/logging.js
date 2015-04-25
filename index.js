@@ -86,10 +86,10 @@ function LogRecord(args) {
 // Format a record with a formartter.
 LogRecord.prototype.format = function(formatter) {
   if (typeof formatter === 'string')
-    return util.format(formatter, this);
+    return util.format(formatter, this) + '\n';
 
   if (typeof formatter === 'function')
-    return formatter(this);
+    return formatter(this) + '\n';
 
   throw new TypeError('formatter should be a string or function')
 };
@@ -182,10 +182,9 @@ Logger.prototype.log = function(level, args) {
 
   for (var name in this.rules) {
     var rule = this.rules[name]
-    if (level >= rule.level) {
+
+    if (level >= rule.level)
       rule.stream.write(record.format(rule.formatter));
-      rule.stream.write('\n');
-    }
   }
 };
 
