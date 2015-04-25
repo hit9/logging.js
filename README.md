@@ -13,15 +13,12 @@ npm install logging.js
 Example
 -------
 
-Just get an logger from registry, add rules to it, then di logging:
-
 ```js
 var logging = require('logging.js'),
   log = logging.get('mylogger');
 
 log.addRule({name: 'stdout', stream: process.stdout});
 log.info('logging from the magic world')
-
 // => 2015-04-25 01-32-07,821 info mylogger[4900]: logging from the magic world
 ```
 
@@ -42,7 +39,7 @@ Global Registry
 ---------------
 
 In a single node process, `logging.get('mylogger')` will always return the same logger object,
-because allloggers are registered in a global registry after they are created.
+because all loggers are registered in a global registry after they are created.
 
 ```js
 logging.get('name') === logging.get('name');  // true
@@ -51,7 +48,7 @@ logging.get('name') === logging.get('name');  // true
 Propagate
 ---------
 
-When we create a new logger by `name`, if there is 
+When we create a new logger by `name`, if there is
 a `fatherLogger` which enables propagate and its name is a long
 enough prefix of `name`, the new logger will propagate rules
 from `fatherLogger`:
@@ -107,24 +104,39 @@ log.critical(fmt, ...)
 Formatter
 ----------
 
-A formatter can be a string or a function like `function(fmt) {..}`.
+A formatter can be a string or a function like `function(record) {..}`.
 
-For string case, an example:
+- For string case, an example:
 
-```js
-'%(asctime)s %(levelname)s %(name)s[%(pid)s]: %(message)s'
-```
+   ```js
+   '%(asctime)s %(levelname)s %(name)s[%(pid)s]: %(message)s'
+   ```
 
-And all available named keys can be found in the source around `function LogRecord`.
+   And all available named attributes for a `log record`:
 
-Logging Formatting
+   ```
+   name       logger name
+   level      record level (number)
+   levelName  record level (string)
+   levelname  record level (string, lowercase)
+   fmt        record formatter string
+   args       record arguments
+   message    record message (fmt % args)
+   pid        process id
+   created    the datetime when this record created
+   asctime    human readable time string, e.g. '2003-07-08 16:49:45,896'
+   ```
+
+- For function case, it should like `function(record) {return string}`
+
+Message Formatting
 -------------------
 
 Logging enables 2 handy string formatting types:
 
 ```js
-log.info('%s=%d', 'val', 1) // 'val=1'
-log.info('%(key1)s=%(key2)d', {key1: 'abc', key2: 123}) // 'abc=123'
+log.info('%s %d', 'val', 1) // 'val 1'
+log.info('%(key1)s %(key2)d', {key1: 'abc', key2: 123}) // 'abc 123'
 ```
 
 File Stream Example
@@ -137,7 +149,7 @@ an example for file stream:
 var fs = require('fs');
 var log = logging.get('myapp');
 
-log.addRule({name: 'file', stream: 
+log.addRule({name: 'file', stream:
   fs.createWriteStream('myapp.log', {flags: 'a'})});
 
 log.info('logging from the maginc world');
