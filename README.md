@@ -38,6 +38,29 @@ logging.ERROR
 logging.CRITICAL
 ```
 
+Global Registry
+---------------
+
+In a single node process, `logging.get('mylogger')` will always return the same logger object,
+because allloggers are registered in a global registry after they are created.
+
+```js
+logging.get('name') === logging.get('name');  // true
+```
+
+Propagate
+---------
+
+When we create a new logger by `name`, if there is 
+a `fatherLogger` which enables propagate and its name is a long
+enough prefix of `name`, the new logger will propagate rules
+from `fatherLogger`:
+
+```js
+var fatherLogger = logging.get('app');
+var childLogger = logging.get('app.module');
+```
+
 API Refs
 --------
 
@@ -62,7 +85,16 @@ A logging rule is an object like:
 }
 ```
 
-### log methods
+### log.removeRule(rule)
+
+Remove a rule from logger by name.
+
+### log.setPropagate(bool)
+
+Enable/Disable this logger to be a `father`in the future (the `Logger` constructor sets
+`log.propagate = true`).
+
+### log.debug/info..
 
 ```js
 log.debug(fmt, ...)
