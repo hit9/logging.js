@@ -3,10 +3,10 @@
 
 var util       = require('./util');
 
-// global registry. {name: logger}
+// Global registry. {name: logger}
 var registry   = {};
 
-// level. {name: level}
+// Levels, {name: level}.
 var levels     = {
   DEBUG   : 10,
   INFO    : 20,
@@ -16,7 +16,7 @@ var levels     = {
   CRITICAL: 50,
 };
 
-// levelNames. {level: name}
+// LevelNames, {level: name}.
 var levelNames = {
   10: 'DEBUG',
   20: 'INFO',
@@ -25,8 +25,36 @@ var levelNames = {
   50: 'CRITICAL'
 };
 
-// default formartter
-var _formatter = '%(asctime)s %(levelname)s %(name)s[%(pid)d]: %(message)s';
+// Get logger from global registry.
+//
+//   getLogger('foo') => Logger(name='foo')
+//   getLogger('foo.bar') => Logger(name='foo.bar')
+//
+function getLogger(name) {
+  if (!(name in registry)) {
+    // create a logger
+    var logger = new Logger(name);
+
+    // find a father logger to propagate from
+    var father;
+
+    for (var _name in registry)
+      if (name.indexOf(_name) === 0)
+        if (!father || (father.propagate
+                        && father.name.length < _name.length))
+          father = registry[_name];
+
+    if (father)
+      logger.propagateFrom(father);
+
+    registry[name] = logger;
+  }
+  return registry[name];
+}
+
+// Default formartter
+var _formatter =
+  '%(asctime)s %(levelname)s %(name)s[%(pid)d]: %(message)s';
 
 // LogRecord constructor.
 //
@@ -67,23 +95,36 @@ LogRecord.prototype.format = function(formatter) {
 function Logger(name) {
   if (typeof name !== 'string')
     throw new TypeError('string required')
-  this.name  = name;
-  this.rules = {};
+
+  this.name      = name;
+  this.propagate = true;
+  this.rules     = {};
 }
+
+Logger.prototype.setPropagate = function(propagate) {
+  this.propagate = !!propagate;
+};
+
+Logger.prototype.propagateFrom = function(father) {
+  for (var name in father.rules) {
+    this.addRule(father.rules[name]);
+  }
+  return this;
+};
 
 Logger.prototype.addRule = function(rule) {
   if (!('name' in rule))
     throw new Error('rule.name required');
 
-  var stream = rule.stream;
-  var formatter = rule.formatter || _formatter;
-  var level = rule.level || levels.DEBUG;
-
-  if (!(stream && stream.writable))
+  if (!(rule.stream && rule.stream.writable))
       throw new Error('invalid stream');
 
-  return this.rules[rule.name] = {stream: stream,
-    formatter: formatter, level: level};
+  return this.rules[rule.name] = {
+    name     : rule.name,
+    level    : rule.level || levels.INFO,
+    stream   : rule.stream,
+    formatter: rule.formatter || _formatter
+  };
 };
 
 Logger.prototype.debug = function(fmt, args) {
@@ -130,6 +171,4 @@ exports.WARN         = levels.WARN;
 exports.WARNING      = levels.WARNING;
 exports.ERROR        = levels.ERROR;
 exports.CRITICAL     = levels.CRITICAL;
-exports.get          = function(name) {
-  return registry[name] || (registry[name] = new Logger(name));
-};
+exports.get          = getLogger;
