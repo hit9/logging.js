@@ -18,8 +18,8 @@ var logging = require('logging.js'),
   log = logging.get('mylogger');
 
 log.addRule({name: 'stdout', stream: process.stdout});
-log.info('logging from the magic world')
-// => 2015-04-25 01-32-07,821 info mylogger[4900]: logging from the magic world
+log.info('logging from %(from)s to %(to)s', {from: 'mylogger', to: 'stdout'})
+// => 2015-04-25 14-28-58,548 info mylogger[8274]: logging from mylogger to stdout
 ```
 
 Logging Levels
