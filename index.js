@@ -74,12 +74,13 @@ function LogRecord(args) {
   this.fmt        = args.fmt;
   this.args       = args.args;
   this.level      = args.level;
-  this.message    = util.format(this.fmt, this.args);
   this.levelName  = levelNames[this.level];
   this.levelname  = this.levelName.toLowerCase();
   this.pid        = process.pid;
   this.created    = new Date();
   this.asctime    = util.formatDate(this.created);
+  this.message    = util.format.apply(null, [this.fmt]
+                                      .concat(this.args));
 }
 
 // Format a record with a formartter.
@@ -146,37 +147,37 @@ Logger.prototype.removeRule = function(name) {
   return delete this.rules[name];
 };
 
-Logger.prototype.debug = function(fmt, args) {
-  return this.log(levels.DEBUG, fmt, args);
+Logger.prototype.debug = function() {
+  return this.log(levels.DEBUG, arguments);
 };
 
-Logger.prototype.info = function(fmt, args) {
-  return this.log(levels.INFO, fmt, args);
+Logger.prototype.info = function() {
+  return this.log(levels.INFO, arguments);
 };
 
-Logger.prototype.warn = function(fmt, args) {
-  return this.log(levels.WARN, fmt, args);
+Logger.prototype.warn = function() {
+  return this.log(levels.WARN, arguments);
 };
 Logger.prototype.warning = Logger.prototype.warn;
 
-Logger.prototype.error = function(fmt, args) {
+Logger.prototype.error = function() {
   return this.log(levels.ERROR, arguments);
 };
 
-Logger.prototype.critical = function(fmt, args) {
-  return this.log(levels.CRITICAL, fmt, args);
+Logger.prototype.critical = function() {
+  return this.log(levels.CRITICAL, arguments);
 };
 
 // Logging formatter with args on `level`.
 //
 //   logger.log('say %(word)', {word: 'hi'})
 //
-Logger.prototype.log = function(level, fmt, args) {
+Logger.prototype.log = function(level, args) {
   var record = new LogRecord({
     name: this.name,
     level: level,
-    fmt: fmt,
-    args: args
+    fmt: args[0],
+    args: [].slice.apply(args, [1])
   });
 
   for (var name in this.rules) {
