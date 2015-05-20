@@ -147,6 +147,10 @@ Logger.prototype.removeRule = function(name) {
   return delete this.rules[name];
 };
 
+Logger.prototype.getRule = function(name) {
+  return this.rules[name];
+};
+
 Logger.prototype.debug = function() {
   return this.log(levels.DEBUG, arguments);
 };
