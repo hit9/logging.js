@@ -135,12 +135,9 @@ Logger.prototype.addRule = function(rule) {
   if (!(rule.stream && rule.stream.writable))
       throw new Error('invalid stream');
 
-  return this.rules[rule.name] = {
-    name: rule.name,
-    level: rule.level || levels.INFO,
-    stream: rule.stream,
-    formatter: rule.formatter || _formatter
-  };
+  rule.level = rule.level || levels.INFO;
+  rule.formatter = rule.formatter || _formatter;
+  return this.rules[rule.name] = rule;
 };
 
 Logger.prototype.removeRule = function(name) {
