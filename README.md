@@ -82,9 +82,13 @@ A logging rule is an object like:
 }
 ```
 
-### log.removeRule(rule)
+### log.removeRule(name)
 
 Remove a rule from logger by name.
+
+### log.getRule(name)
+
+Get a rule from logger by name.
 
 ### log.setPropagate(bool)
 
