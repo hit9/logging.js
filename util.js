@@ -44,7 +44,7 @@ exports.format = function(fmt) {
 
 // Format date object.
 exports.formatDate = function(date, fmt) {
-  fmt = fmt || '%s-%s-%s %s-%s-%s,%s';
+  fmt = fmt || '%s-%s-%s %s:%s:%s,%s';
   return exports.format(
     fmt,
     date.getFullYear(),
