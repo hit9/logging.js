@@ -190,6 +190,8 @@ Logger.prototype.log = function(level, args) {
 };
 
 // exports
+exports.levels       = levels;
+exports.levelNames   = levelNames;
 exports.DEBUG        = levels.DEBUG;
 exports.INFO         = levels.INFO;
 exports.WARN         = levels.WARN;
