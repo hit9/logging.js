@@ -1,13 +1,16 @@
-// Stream based logging module for nodejs/iojs.
-// MIT. (c) Chao Wang <hit9@icloud.com>
+/**
+ * @overview  Stream based logging module for nodejs/iojs.
+ * @author    hit9
+ * @copyright MIT. (c) Chao Wang <hit9@icloud.com>
+ */
 
-var util = require('./util');
+const util = require('util');
 
 // Global registry. {name: logger}
-var registry = {};
+const registry = {};
 
 // Levels, {name: level}.
-var levels = {
+const levels = {
   DEBUG   : 10,
   INFO    : 20,
   WARN    : 30,
@@ -17,7 +20,7 @@ var levels = {
 };
 
 // LevelNames, {level: name}.
-var levelNames = {
+const levelNames = {
   10: 'DEBUG',
   20: 'INFO',
   30: 'WARN',
@@ -26,26 +29,38 @@ var levelNames = {
 };
 
 // Level comparation operators
-var LEVEL_GT = 1;
-var LEVEL_GE = 2;
-var LEVEL_EQ = 3;
-var LEVEL_LT = 4;
-var LEVEL_LE = 5;
+const LEVEL_GT = 1;
+const LEVEL_GE = 2;
+const LEVEL_EQ = 3;
+const LEVEL_LT = 4;
+const LEVEL_LE = 5;
 
-// Get logger from global registry.
-//
-//   getLogger('foo') => Logger(name='foo')  // father
-//   getLogger('foo.bar') => Logger(name='foo.bar')  // child
-//
+// util months
+const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep',
+  'Oct', 'Nov', 'Dec'];
+
+/**
+ * Get logger from global registry, examples:
+ *
+ *   getLogger('foo') => Logger(name='foo')  // father
+ *   getLogger('foo.bar') => Logger(name='foo.bar')  // child
+ *
+ * @param {String} name
+ * @return {Logger}
+ */
 function getLogger(name) {
+  var logger,
+      _name,
+      father;
+
   if (!(name in registry)) {
     // create a logger
-    var logger = new Logger(name);
+    logger = new Logger(name);
 
     // try to find a father logger to propagate from
-    var father;
+    father;
 
-    for (var _name in registry)
+    for (_name in registry)
       if (name.indexOf(_name) === 0)
         if (!father || (father.propagate
                         && father.name.length < _name.length))
@@ -56,26 +71,88 @@ function getLogger(name) {
 
     registry[name] = logger;
   }
+
   return registry[name];
 }
 
+/**
+ * Util to format a string, examples:
+ *
+ *  format(1, 2, 3)  // '1 2 3'
+ *  format('%s %d', 'val', 123)  // 'val 123'
+ *  format('%(key)s', {key: 'val'})  // 'val'
+ *  format('%%s', 'val')  // '%%s'
+ *  format('%%(key)s', {key: 'val'})  // '%%(key)s'
+ *
+ * @param {String} fmt
+ * @param {Mixed} args..
+ */
+const formatRegExp = /%%?(\(\w+\))?[sdj]/g;
+function format(fmt) {
+  var args = arguments,
+    isKeyValFmt = false,
+    isOriginFmt = false,
+    index = 0, val;
+
+  if (typeof fmt !== 'string')
+    return util.format.apply(null, args);
+
+  return fmt.replace(formatRegExp, function(match, idx) {
+    if (typeof idx === 'undefined' && !isKeyValFmt) {
+      isOriginFmt = true;
+      return util.format(match, args[++index]);
+    }
+
+    if (typeof idx === 'string' && !isOriginFmt) {
+      isKeyValFmt = true;
+
+      if (match.slice(0, 2) === '%%' || args.length === 1)
+        return match;
+
+      val = args[1][idx.slice(1, -1)];
+
+      if (typeof val === 'function')
+        val = val();
+      return util.format('%' + match.slice(-1), val);
+    }
+
+    throw new Error('invalid format');
+  });
+}
+
+/**
+ * Util to pad string.
+ *
+ * @param {Number} n
+ * @return {String}
+ */
+function pad(n) {
+  return n < 10 ? '0' + n.toString(10) : n.toString(10);
+}
+
+
 // Default formartter
-var _formatter =
+var defaultFormatter =
   '%(asctime)s %(levelname)s %(name)s[%(pid)d]: %(message)s';
 
-// LogRecord constructor.
-//
-//    name       logger name
-//    level      record level (number)
-//    levelName  record level (string)
-//    levelname  record level (string, lowercase)
-//    fmt        record formatter string
-//    args       record arguments
-//    message    record message (fmt % args)
-//    pid        process id
-//    created    the datetime when this record created
-//    asctime    human readable time string, e.g. '2003-07-08 16:49:45,896'
-//
+/**
+ * LogRecord constructor.
+ *
+ *    name       logger name
+ *    level      record level (number)
+ *    levelName  record level (string)
+ *    levelname  record level (string, lowercase)
+ *    fmt        record formatter string
+ *    args       record arguments
+ *    message    record message (fmt % args)
+ *    pid        process id
+ *    asctime    human readable time string for current datetime,
+ *               e.g. '2003-07-08 16:49:45,896'
+ *    litetime   another lite human readable time string for current
+ *               datetime, e.g. '26 Feb 16:19:34'
+ *
+ * @param {Mixed} args..
+ */
 function LogRecord(args) {
   this.name       = args.name;
   this.fmt        = args.fmt;
@@ -84,16 +161,36 @@ function LogRecord(args) {
   this.levelName  = levelNames[this.level];
   this.levelname  = this.levelName.toLowerCase();
   this.pid        = process.pid;
-  this.created    = new Date();
-  this.asctime    = util.formatDate(this.created);
-  this.message    = util.format.apply(null, [this.fmt]
-                                      .concat(this.args));
+  this.message    = format.apply(null, [this.fmt]
+                                 .concat(this.args));
 }
+
+// '2003-07-08 16:49:45,896'
+LogRecord.prototype.asctime = function() {
+  var d = new Date();
+  return util.format('%s-%s-%s %s:%s:%s,%s',
+                     pad(d.getFullYear()),
+                     pad(d.getMonth() + 1),
+                     pad(d.getDate()),
+                     pad(d.getHours()),
+                     pad(d.getMinutes()),
+                     pad(d.getSeconds()),
+                     pad(d.getMilliseconds()));
+};
+
+// 26 Feb 16:19:34
+LogRecord.prototype.litetime = function() {
+  var d = new Date();
+  var time = [pad(d.getHours()),
+              pad(d.getMinutes()),
+              pad(d.getSeconds())].join(':');
+  return [d.getDate(), months[d.getMonth()], time].join(' ');
+};
 
 // Format a record with a formartter.
 LogRecord.prototype.format = function(formatter) {
   if (typeof formatter === 'string')
-    return util.format(formatter, this) + '\n';
+    return format(formatter, this) + '\n';
 
   if (typeof formatter === 'function')
     return formatter(this) + '\n';
@@ -101,12 +198,15 @@ LogRecord.prototype.format = function(formatter) {
   throw new TypeError('formatter should be a string or function')
 };
 
-
-// Logger constructor
-//
-//   name         logger name (string)
-//   propagate    if this logger can be a `father` (default: true)
-//   rules        logger rules (object {name: rule})
+/**
+ * Logger constructor
+ *
+ *   name         logger name (string)
+ *   propagate    if this logger can be a `father` (default: true)
+ *   rules        logger rules (object {name: rule})
+ *
+ * @param {String} name
+ */
 function Logger(name) {
   if (typeof name !== 'string')
     throw new TypeError('string required')
@@ -116,11 +216,19 @@ function Logger(name) {
   this.rules     = {};
 }
 
+/**
+ * @param {Boolean} propagate
+ */
 Logger.prototype.setPropagate = function(propagate) {
   this.propagate = !!propagate;
 };
 
-// Propagate from a father logger.
+/**
+ * Propagate from a father logger.
+ *
+ * @param {Logger} father
+ * @return {Logger} this
+ */
 Logger.prototype.propagateFrom = function(father) {
   for (var name in father.rules) {
     this.addRule(father.rules[name]);
@@ -128,14 +236,18 @@ Logger.prototype.propagateFrom = function(father) {
   return this;
 };
 
-// Add a rule to this logger.
-//
-//   rule.name       rule name (required)
-//   rule.level      level to emit stream writing. (default: INFO)
-//   rule.stream     a writable stream to logging to (required).
-//   rule.formatter  a string formatter or a function.
-//   rule.levelCmp   level comparation operator
-//
+/**
+ * Add a rule to this logger.
+ *
+ *   rule.name       rule name (required)
+ *   rule.level      level to emit stream writing. (default: INFO)
+ *   rule.stream     a writable stream to logging to (required).
+ *   rule.formatter  a string formatter or a function.
+ *   rule.levelCmp   level comparation operator
+ *
+ * @param {Object} rule
+ * @return {Object} rule
+ */
 Logger.prototype.addRule = function(rule) {
   if (!('name' in rule))
     throw new Error('rule.name required');
@@ -144,7 +256,7 @@ Logger.prototype.addRule = function(rule) {
       throw new Error('invalid stream');
 
   rule.level = rule.level || levels.INFO;
-  rule.formatter = rule.formatter || _formatter;
+  rule.formatter = rule.formatter || defaultFormatter;
   rule.levelCmp = rule.levelCmp || LEVEL_GE;
   return this.rules[rule.name] = rule;
 };
@@ -178,10 +290,14 @@ Logger.prototype.critical = function() {
   return this.log(levels.CRITICAL, arguments);
 };
 
-// Logging formatter with args on `level`.
-//
-//   logger.log('say %(word)', {word: 'hi'})
-//
+/**
+ * Logging formatter with args on `level`.
+ *
+ *   logger.log('say %(word)', {word: 'hi'})
+ *
+ * @param {Number} level
+ * @param {Array} args
+ */
 Logger.prototype.log = function(level, args) {
   var record = new LogRecord({
     name: this.name,
