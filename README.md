@@ -75,10 +75,11 @@ A logging rule is an object like:
 
 ```js
 {
-  name: 'stdout',          // a rule has a name, required
-  stream: process.stdout,  // a writable stream, required
-  level: logging.INFO,     // logging level, default: logging.INFO
-  formatter: '...',        // formatter, string or function (optional)
+  name: 'stdout',            // a rule has a name, required
+  stream: process.stdout,    // a writable stream, required
+  level: logging.INFO,       // logging level, default: logging.INFO
+  formatter: '...',          // formatter, string or function (optional)
+  levelCmp: logging.LEVEL_GE // do logging only if current message level greater than rule's level
 }
 ```
 
@@ -157,6 +158,25 @@ log.addRule({name: 'file', stream:
   fs.createWriteStream('myapp.log', {flags: 'a'})});
 
 log.info('logging from the maginc world');
+```
+
+Logging to Different Files By Level
+-----------------------------------
+
+For example, we want to log messages to 3 files by level: `error.log`, `warning.log` and `all.log`:
+
+```js
+var fs = require('fs');
+var log = logging.get('myapp');
+
+log.addRule({name: 'all',
+  stream: fs.createWriteStream('all.log', {flags: 'a'})});
+
+log.addRule({name: 'error', level: logging.ERROR, levelCmp: logging.LEVEL_EQ,
+  stream: fs.createWriteStream('error.log', {flags: 'a'})});
+
+log.addRule({name: 'warning', level: logging.WARNING, levelCmp: logging.LEVEL_EQ,
+  stream: fs.createWriteStream('warning.log', {flags: 'a'})});
 ```
 
 License

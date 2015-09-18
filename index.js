@@ -25,6 +25,13 @@ var levelNames = {
   50: 'CRITICAL'
 };
 
+// Level comparation operators
+var LEVEL_GT = 1;
+var LEVEL_GE = 2;
+var LEVEL_EQ = 3;
+var LEVEL_LT = 4;
+var LEVEL_LE = 5;
+
 // Get logger from global registry.
 //
 //   getLogger('foo') => Logger(name='foo')  // father
@@ -127,6 +134,7 @@ Logger.prototype.propagateFrom = function(father) {
 //   rule.level      level to emit stream writing. (default: INFO)
 //   rule.stream     a writable stream to logging to (required).
 //   rule.formatter  a string formatter or a function.
+//   rule.levelCmp   level comparation operator
 //
 Logger.prototype.addRule = function(rule) {
   if (!('name' in rule))
@@ -137,6 +145,7 @@ Logger.prototype.addRule = function(rule) {
 
   rule.level = rule.level || levels.INFO;
   rule.formatter = rule.formatter || _formatter;
+  rule.levelCmp = rule.levelCmp || LEVEL_GE;
   return this.rules[rule.name] = rule;
 };
 
@@ -182,10 +191,24 @@ Logger.prototype.log = function(level, args) {
   });
 
   for (var name in this.rules) {
-    var rule = this.rules[name]
+    var rule = this.rules[name];
 
-    if (level >= rule.level)
-      rule.stream.write(record.format(rule.formatter));
+    if (rule.levelCmp == LEVEL_GT && level <= rule.level)
+      continue;
+
+    if (rule.levelCmp == LEVEL_GE && level < rule.level)
+      continue;
+
+    if (rule.levelCmp == LEVEL_EQ && level != rule.level)
+      continue;
+
+    if (rule.levelCmp == LEVEL_LT && level >= rule.level)
+      continue;
+
+    if (rule.levelCmp == LEVEL_LE && level > rule.level)
+      continue;
+
+    rule.stream.write(record.format(rule.formatter));
   }
 };
 
@@ -198,4 +221,9 @@ exports.WARN         = levels.WARN;
 exports.WARNING      = levels.WARNING;
 exports.ERROR        = levels.ERROR;
 exports.CRITICAL     = levels.CRITICAL;
+exports.LEVEL_GT     = LEVEL_GT;
+exports.LEVEL_GE     = LEVEL_GE;
+exports.LEVEL_EQ     = LEVEL_EQ;
+exports.LEVEL_LT     = LEVEL_LT;
+exports.LEVEL_LE     = LEVEL_LE;
 exports.get          = getLogger;
