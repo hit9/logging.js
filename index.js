@@ -329,6 +329,7 @@ Logger.prototype.log = function(level, args) {
 };
 
 // exports
+exports.get          = getLogger;
 exports.levels       = levels;
 exports.levelNames   = levelNames;
 exports.DEBUG        = levels.DEBUG;
@@ -342,4 +343,3 @@ exports.LEVEL_GE     = LEVEL_GE;
 exports.LEVEL_EQ     = LEVEL_EQ;
 exports.LEVEL_LT     = LEVEL_LT;
 exports.LEVEL_LE     = LEVEL_LE;
-exports.get          = getLogger;
