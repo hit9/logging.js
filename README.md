@@ -83,6 +83,8 @@ A logging rule is an object like:
 }
 ```
 
+If no rules were added when logging, `process.stderr` will be used.
+
 ### log.removeRule(name)
 
 Remove a rule from logger by name.
