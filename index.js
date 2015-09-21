@@ -290,6 +290,10 @@ Logger.prototype.critical = function() {
   return this.log(levels.CRITICAL, arguments);
 };
 
+Logger.prototype.fatal = function() {
+  return this.log(levels.CRITICAL, arguments) && process.exit(1);
+};
+
 /**
  * Logging formatter with args on `level`.
  *
@@ -308,7 +312,7 @@ Logger.prototype.log = function(level, args) {
 
   if (!this.rules.length) {
     process.stderr.write(record.format(defaultFormatter));
-    return;
+    return true;
   }
 
   for (var name in this.rules) {
@@ -325,6 +329,8 @@ Logger.prototype.log = function(level, args) {
       continue;
     rule.stream.write(record.format(rule.formatter));
   }
+
+  return true;
 };
 
 // exports
