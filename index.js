@@ -58,8 +58,6 @@ function getLogger(name) {
     logger = new Logger(name);
 
     // try to find a father logger to propagate from
-    father;
-
     for (_name in registry)
       if (name.indexOf(_name) === 0)
         if (!father || (father.propagate
