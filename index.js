@@ -306,24 +306,23 @@ Logger.prototype.log = function(level, args) {
     args: [].slice.apply(args, [1])
   });
 
+  if (!this.rules.length) {
+    process.stderr.write(record.format(defaultFormatter));
+    return;
+  }
+
   for (var name in this.rules) {
     var rule = this.rules[name];
-
     if (rule.levelCmp == LEVEL_GT && level <= rule.level)
       continue;
-
     if (rule.levelCmp == LEVEL_GE && level < rule.level)
       continue;
-
     if (rule.levelCmp == LEVEL_EQ && level != rule.level)
       continue;
-
     if (rule.levelCmp == LEVEL_LT && level >= rule.level)
       continue;
-
     if (rule.levelCmp == LEVEL_LE && level > rule.level)
       continue;
-
     rule.stream.write(record.format(rule.formatter));
   }
 };
