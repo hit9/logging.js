@@ -212,6 +212,7 @@ function Logger(name) {
   this.name      = name;
   this.propagate = true;
   this.rules     = {};
+  this.father    = null;
 }
 
 /**
@@ -228,9 +229,7 @@ Logger.prototype.setPropagate = function(propagate) {
  * @return {Logger} this
  */
 Logger.prototype.propagateFrom = function(father) {
-  for (var name in father.rules) {
-    this.addRule(father.rules[name]);
-  }
+  this.father = father;
   return this;
 };
 
@@ -308,27 +307,43 @@ Logger.prototype.log = function(level, args) {
     args: [].slice.apply(args, [1])
   });
 
-  if (!Object.keys(this.rules).length) {
-    process.stderr.write(record.format(defaultFormatter));
-    return true;
+  var rules = {};
+
+  util._extend(rules, this.rules);
+
+  if (this.father)
+    util._extend(rules, this.father.rules);
+
+  if (!Object.keys(rules)) {
+    process.stderr.write(util.format("No rules was found for logger %j",
+                                     this.name));
+    return false;
   }
 
-  for (var name in this.rules) {
-    var rule = this.rules[name];
-    if (rule.levelCmp == LEVEL_GT && level <= rule.level)
-      continue;
-    if (rule.levelCmp == LEVEL_GE && level < rule.level)
-      continue;
-    if (rule.levelCmp == LEVEL_EQ && level != rule.level)
-      continue;
-    if (rule.levelCmp == LEVEL_LT && level >= rule.level)
-      continue;
-    if (rule.levelCmp == LEVEL_LE && level > rule.level)
-      continue;
-    rule.stream.write(record.format(rule.formatter));
-  }
+  for (var name in rules)
+    this.doLogging(record, rules[name]);
 
   return true;
+};
+
+/**
+ * Do logging by rule.
+ *
+ * @param {Record} record
+ * @param {Object} rule
+ */
+Logger.prototype.doLogging = function(record, rule) {
+  if (rule.levelCmp == LEVEL_GT && record.level <= rule.level)
+    return;
+  if (rule.levelCmp == LEVEL_GE && record.level < rule.level)
+    return;
+  if (rule.levelCmp == LEVEL_EQ && record.level != rule.level)
+    return;
+  if (rule.levelCmp == LEVEL_LT && record.level >= rule.level)
+    return;
+  if (rule.levelCmp == LEVEL_LE && record.level > rule.level)
+    return;
+  rule.stream.write(record.format(rule.formatter));
 };
 
 // exports
