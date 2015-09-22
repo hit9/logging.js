@@ -59,7 +59,7 @@ function getLogger(name) {
 
     // try to find a father logger to propagate from
     for (_name in registry)
-      if (name.indexOf(_name) === 0)
+      if (name.indexOf(_name+'.') === 0)
         if (!father || (father.propagate
                         && father.name.length < _name.length))
           father = registry[_name];
