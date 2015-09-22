@@ -131,7 +131,7 @@ function pad(n) {
 
 // Default formartter
 var defaultFormatter =
-  '%(litetime)s %(name)s %(levelname)s - %(message)s';
+  '%(litetime)s %(levelname)s %(name)s[%(pid)d]: %(message)s';
 
 /**
  * LogRecord constructor.
