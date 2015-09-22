@@ -308,7 +308,7 @@ Logger.prototype.log = function(level, args) {
     args: [].slice.apply(args, [1])
   });
 
-  if (!this.rules.length) {
+  if (!Object.keys(this.rules).length) {
     process.stderr.write(record.format(defaultFormatter));
     return true;
   }
